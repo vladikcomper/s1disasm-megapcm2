@@ -71,6 +71,8 @@ vram_fg:	equ $C000	; foreground namespace
 vram_bg:	equ $E000	; background namespace
 vram_sprites:	equ $F800	; sprite table
 vram_hscroll:	equ $FC00	; horizontal scroll table
+tile_size:	equ 8*8/2
+plane_size_64x32:	equ 64*32*2
 
 ; Game modes
 id_Sega:	equ ptr_GM_Sega-GameModeArray	; $00
@@ -550,7 +552,11 @@ ArtTile_Mini_Sonic:		equ $551
 ArtTile_Bonuses:		equ $570
 ArtTile_Signpost:		equ $680
 
+; Sega Screen
+ArtTile_Sega_Tiles:		equ $000
+
 ; Title Screen
+ArtTile_Title_Japanese_Text:	equ $000
 ArtTile_Title_Foreground:	equ $200
 ArtTile_Title_Sonic:		equ $300
 ArtTile_Title_Trademark:	equ $510
