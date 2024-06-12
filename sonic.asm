@@ -698,12 +698,12 @@ VBla_08:
 .waterbelow:
 		move.w	(v_hbla_hreg).w,(a5)
 
-		writeVRAM	v_hscrolltablebuffer,$380,vram_hscroll
-		writeVRAM	v_spritetablebuffer,$280,vram_sprites
+		writeVRAM	v_hscrolltablebuffer,vram_hscroll
+		writeVRAM	v_spritetablebuffer,vram_sprites
 		tst.b	(f_sonframechg).w ; has Sonic's sprite changed?
 		beq.s	.nochg		; if not, branch
 
-		writeVRAM	v_sgfx_buffer,$2E0,ArtTile_Sonic*tile_size ; load new Sonic gfx
+		writeVRAM	v_sgfx_buffer,ArtTile_Sonic*tile_size ; load new Sonic gfx
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
@@ -745,14 +745,14 @@ VBla_0A:
 		waitZ80
 		bsr.w	ReadJoypads
 		writeCRAM	v_pal_dry,$80,0
-		writeVRAM	v_spritetablebuffer,$280,vram_sprites
-		writeVRAM	v_hscrolltablebuffer,$380,vram_hscroll
+		writeVRAM	v_spritetablebuffer,vram_sprites
+		writeVRAM	v_hscrolltablebuffer,vram_hscroll
 		startZ80
 		bsr.w	PalCycle_SS
 		tst.b	(f_sonframechg).w ; has Sonic's sprite changed?
 		beq.s	.nochg		; if not, branch
 
-		writeVRAM	v_sgfx_buffer,$2E0,ArtTile_Sonic*tile_size ; load new Sonic gfx
+		writeVRAM	v_sgfx_buffer,ArtTile_Sonic*tile_size ; load new Sonic gfx
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
@@ -779,11 +779,11 @@ VBla_0C:
 
 .waterbelow:
 		move.w	(v_hbla_hreg).w,(a5)
-		writeVRAM	v_hscrolltablebuffer,$380,vram_hscroll
-		writeVRAM	v_spritetablebuffer,$280,vram_sprites
+		writeVRAM	v_hscrolltablebuffer,vram_hscroll
+		writeVRAM	v_spritetablebuffer,vram_sprites
 		tst.b	(f_sonframechg).w
 		beq.s	.nochg
-		writeVRAM	v_sgfx_buffer,$2E0,ArtTile_Sonic*tile_size
+		writeVRAM	v_sgfx_buffer,ArtTile_Sonic*tile_size
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
@@ -817,12 +817,12 @@ VBla_16:
 		waitZ80
 		bsr.w	ReadJoypads
 		writeCRAM	v_pal_dry,$80,0
-		writeVRAM	v_spritetablebuffer,$280,vram_sprites
-		writeVRAM	v_hscrolltablebuffer,$380,vram_hscroll
+		writeVRAM	v_spritetablebuffer,vram_sprites
+		writeVRAM	v_hscrolltablebuffer,vram_hscroll
 		startZ80
 		tst.b	(f_sonframechg).w
 		beq.s	.nochg
-		writeVRAM	v_sgfx_buffer,$2E0,ArtTile_Sonic*tile_size
+		writeVRAM	v_sgfx_buffer,ArtTile_Sonic*tile_size
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
@@ -849,8 +849,8 @@ sub_106E:
 		writeCRAM	v_pal_water,$80,0
 
 .waterbelow:
-		writeVRAM	v_spritetablebuffer,$280,vram_sprites
-		writeVRAM	v_hscrolltablebuffer,$380,vram_hscroll
+		writeVRAM	v_spritetablebuffer,vram_sprites
+		writeVRAM	v_hscrolltablebuffer,vram_hscroll
 		startZ80
 		rts	
 ; End of function sub_106E
