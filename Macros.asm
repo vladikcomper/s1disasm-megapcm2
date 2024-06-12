@@ -31,9 +31,9 @@ writeVRAM:	macro source,destination
 ; input: source, length, destination
 ; ---------------------------------------------------------------------------
 
-writeCRAM:	macro source,length,destination
+writeCRAM:	macro source,destination
 		lea	(vdp_control_port).l,a5
-		move.l	#$94000000+(((length>>1)&$FF00)<<8)+$9300+((length>>1)&$FF),(a5)
+		move.l	#$94000000+((((source_end-source)>>1)&$FF00)<<8)+$9300+(((source_end-source)>>1)&$FF),(a5)
 		move.l	#$96000000+(((source>>1)&$FF00)<<8)+$9500+((source>>1)&$FF),(a5)
 		move.w	#$9700+((((source>>1)&$FF0000)>>16)&$7F),(a5)
 		move.w	#$C000+(destination&$3FFF),(a5)

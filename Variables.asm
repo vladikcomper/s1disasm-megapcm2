@@ -371,7 +371,9 @@ v_spritetablebuffer:	ds.b	$280		; sprite table (last $80 bytes are overwritten b
 v_spritetablebuffer_end:
 v_pal_water_dup = v_spritetablebuffer_end-$80	; duplicate underwater palette, used for transitions ($80 bytes)
 v_pal_water:		ds.b	$80		; main underwater palette
+v_pal_water_end:
 v_pal_dry:		ds.b	$80		; main palette
+v_pal_dry_end:
 v_pal_dry_dup:		ds.b	$80		; duplicate palette, used for transitions
 v_objstate:		ds.b	$C0		; object state list
 v_objstate_end:
