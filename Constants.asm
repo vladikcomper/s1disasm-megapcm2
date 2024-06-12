@@ -558,6 +558,7 @@ ArtTile_Level_Select_Font:	equ $680
 
 ; Continue Screen
 ArtTile_Continue_Sonic:		equ $500
+ArtTile_Continue_Number:	equ $6FC
 
 ; Ending
 ArtTile_Ending_Flowers:		equ $3A0
@@ -581,16 +582,22 @@ ArtTile_Try_Again_Eggman:	equ $3E1
 ArtTile_SS_Background_Clouds:	equ $000
 ArtTile_SS_Background_Fish:	equ $051
 ArtTile_SS_Wall:		equ $142
+ArtTile_SS_Plane_1:		equ $200
 ArtTile_SS_Bumper:		equ $23B
 ArtTile_SS_Goal:		equ $251
 ArtTile_SS_Up_Down:		equ $263
 ArtTile_SS_R_Block:		equ $2F0
+ArtTile_SS_Plane_2:		equ $300
 ArtTile_SS_Extra_Life:		equ $370
 ArtTile_SS_Emerald_Sparkle:	equ $3F0
+ArtTile_SS_Plane_3:		equ $400
 ArtTile_SS_Red_White_Block:	equ $470
 ArtTile_SS_Ghost_Block:		equ $4F0
+ArtTile_SS_Plane_4:		equ $500
 ArtTile_SS_W_Block:		equ $570
 ArtTile_SS_Glass:		equ $5F0
+ArtTile_SS_Plane_5:		equ $600
+ArtTile_SS_Plane_6:		equ $700
 ArtTile_SS_Emerald:		equ $770
 ArtTile_SS_Zone_1:		equ $797
 ArtTile_SS_Zone_2:		equ $7A0
@@ -605,3 +612,6 @@ ArtTile_SS_Results_Emeralds:	equ $541
 ; Font
 ArtTile_Sonic_Team_Font:	equ $0A6
 ArtTile_Credits_Font:		equ $5A0
+
+; Error Handler
+ArtTile_Error_Handler_Font:	equ $7C0

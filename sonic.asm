@@ -478,9 +478,9 @@ loc_478:
 
 ShowErrorMessage:
 		lea	(vdp_data_port).l,a6
-		locVRAM	$F800
+		locVRAM	ArtTile_Error_Handler_Font*$20
 		lea	(Art_Text).l,a0
-		move.w	#$27F,d1
+		move.w	#(Art_Text_End-Art_Text-$20)/2-1,d1 ; strangely, this does not load the final tile
 .loadgfx:
 		move.w	(a0)+,(a6)
 		dbf	d1,.loadgfx
@@ -490,12 +490,12 @@ ShowErrorMessage:
 		move.w	ErrorText(pc,d0.w),d0
 		lea	ErrorText(pc,d0.w),a0
 		locVRAM	vram_fg+$604
-		moveq	#$12,d1		; number of characters (minus 1)
+		moveq	#19-1,d1		; number of characters (minus 1)
 
 .showchars:
 		moveq	#0,d0
 		move.b	(a0)+,d0
-		addi.w	#$790,d0
+		addi.w	#-'0'+ArtTile_Error_Handler_Font,d0 ; rebase from ASCII to a VRAM index
 		move.w	d0,(a6)
 		dbf	d1,.showchars	; repeat for number of characters
 		rts	
@@ -525,7 +525,7 @@ ErrorText:	dc.w .exception-ErrorText, .bus-ErrorText
 
 
 ShowErrorValue:
-		move.w	#$7CA,(a6)	; display "$" symbol
+		move.w	#ArtTile_Error_Handler_Font+10,(a6)	; display "$" symbol
 		moveq	#7,d2
 
 .loop:
@@ -566,7 +566,7 @@ ErrorWaitForC:
 ; ===========================================================================
 
 Art_Text:	binclude	"artunc/menutext.bin" ; text used in level select and debug mode
-		even
+Art_Text_End:	even
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -2045,13 +2045,13 @@ GM_Sega:
 		move.w	#0,d0
 		bsr.w	EniDec
 
-		copyTilemap	v_256x256&$FFFFFF,$E510,$17,7
-		copyTilemap	(v_256x256+$180)&$FFFFFF,$C000,$27,$1B
+		copyTilemap	v_256x256&$FFFFFF,vram_bg+$510,24,8
+		copyTilemap	(v_256x256+24*8*2)&$FFFFFF,vram_fg,40,28
 
 		if Revision<>0
 			tst.b   (v_megadrive).w	; is console Japanese?
 			bmi.s   .loadpal
-			copyTilemap	(v_256x256+$A40)&$FFFFFF,$C53A,2,1 ; hide "TM" with a white rectangle
+			copyTilemap	(v_256x256+$A40)&$FFFFFF,vram_fg+$53A,3,2 ; hide "TM" with a white rectangle
 		endif
 
 .loadpal:
@@ -2125,7 +2125,7 @@ GM_Title:
 		move.w	#0,d0
 		bsr.w	EniDec
 
-		copyTilemap	v_256x256&$FFFFFF,$C000,$27,$1B
+		copyTilemap	v_256x256&$FFFFFF,vram_fg,40,28
 
 		clearRAM v_pal_dry_dup,v_pal_dry_dup+16*4*2
 
@@ -2148,7 +2148,7 @@ GM_Title:
 		lea	(vdp_data_port).l,a6
 		locVRAM	ArtTile_Level_Select_Font*$20,4(a6)
 		lea	(Art_Text).l,a5	; load level select font
-		move.w	#$28F,d1
+		move.w	#(Art_Text_End-Art_Text)/2-1,d1
 
 Tit_LoadText:
 		move.w	(a5)+,(a6)
@@ -2184,7 +2184,7 @@ Tit_LoadText:
 		move.w	#0,d0
 		bsr.w	EniDec
 
-		copyTilemap	v_256x256&$FFFFFF,$C206,$21,$15
+		copyTilemap	v_256x256&$FFFFFF,vram_fg+$206,34,22
 
 		locVRAM	ArtTile_Level*$20
 		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
@@ -2319,8 +2319,8 @@ Tit_ChkLevSel:
 		move.l	d0,(v_scrposy_vdp).w
 		disable_ints
 		lea	(vdp_data_port).l,a6
-		locVRAM	$E000
-		move.w	#$3FF,d1
+		locVRAM	vram_bg
+		move.w	#$1000/4-1,d1
 
 Tit_ClrScroll2:
 		move.l	d0,(a6)
@@ -2665,7 +2665,7 @@ LevSel_DrawAll:
 		move.w	#$C680,d3
 
 LevSel_DrawSnd:
-		locVRAM	$EC30		; sound test position on screen
+		locVRAM	vram_bg+$C30		; sound test position on screen
 		move.w	(v_levselsound).w,d0
 		addi.w	#$80,d0
 		move.b	d0,d2
@@ -3380,17 +3380,17 @@ SS_ToLevel:	cmpi.b	#id_Level,(v_gamemode).w
 SS_BGLoad:
 		lea	(v_ssbuffer1&$FFFFFF).l,a1
 		lea	(Eni_SSBg1).l,a0 ; load	mappings for the birds and fish
-		move.w	#$4051,d0
+		move.w	#make_art_tile(ArtTile_SS_Background_Fish,2,0),d0
 		bsr.w	EniDec
-		locVRAM	$5000,d3
+		locVRAM	ArtTile_SS_Plane_1*$20+$1000,d3
 		lea	((v_ssbuffer1+$80)&$FFFFFF).l,a2
-		moveq	#7-1,d7
+		moveq	#7-1,d7 ; $5000, $6000, $7000, $8000, $9000, $A000, $B000.
 
 loc_48BE:
 		move.l	d3,d0
 		moveq	#3,d6
 		moveq	#0,d4
-		cmpi.w	#3,d7
+		cmpi.w	#4-1,d7 ; $8000
 		bhs.s	loc_48CC
 		moveq	#1,d4
 
@@ -3403,6 +3403,7 @@ loc_48CE:
 		bne.s	loc_48E2
 		cmpi.w	#6,d7
 		bne.s	loc_48F2
+
 		lea	(v_ssbuffer1&$FFFFFF).l,a1
 
 loc_48E2:
@@ -3415,9 +3416,11 @@ loc_48E2:
 loc_48F2:
 		addi.l	#$100000,d0
 		dbf	d5,loc_48CE
+
 		addi.l	#$3800000,d0
 		eori.b	#1,d4
 		dbf	d6,loc_48CC
+
 		addi.l	#$10000000,d3
 		bpl.s	loc_491C
 		swap	d3
@@ -3427,12 +3430,13 @@ loc_48F2:
 loc_491C:
 		adda.w	#$80,a2
 		dbf	d7,loc_48BE
+
 		lea	(v_ssbuffer1&$FFFFFF).l,a1
 		lea	(Eni_SSBg2).l,a0 ; load	mappings for the clouds
-		move.w	#$4000,d0
+		move.w	#make_art_tile(ArtTile_SS_Background_Clouds,2,0),d0
 		bsr.w	EniDec
-		copyTilemap	v_ssbuffer1&$FFFFFF,$C000,$3F,$1F
-		copyTilemap	v_ssbuffer1&$FFFFFF,$D000,$3F,$3F
+		copyTilemap	v_ssbuffer1&$FFFFFF,ArtTile_SS_Plane_5*$20,64,32
+		copyTilemap	v_ssbuffer1&$FFFFFF,ArtTile_SS_Plane_5*$20+$1000,64,64
 		rts	
 ; End of function SS_BGLoad
 
@@ -3448,6 +3452,7 @@ PalCycle_SS:
 		bne.s	locret_49E6
 		subq.w	#1,(v_palss_time).w
 		bpl.s	locret_49E6
+
 		lea	(vdp_control_port).l,a6
 		move.w	(v_palss_num).w,d0
 		addq.w	#1,(v_palss_num).w
@@ -3455,26 +3460,36 @@ PalCycle_SS:
 		lsl.w	#2,d0
 		lea	(byte_4A3C).l,a0
 		adda.w	d0,a0
+
+		; Time
 		move.b	(a0)+,d0
 		bpl.s	loc_4992
 		move.w	#$1FF,d0
 
 loc_4992:
 		move.w	d0,(v_palss_time).w
+
+		; Anim
 		moveq	#0,d0
 		move.b	(a0)+,d0
 		move.w	d0,(v_ssbganim).w
 		lea	(byte_4ABC).l,a1
 		lea	(a1,d0.w),a1
+		; FG VRAM
 		move.w	#$8200,d0
 		move.b	(a1)+,d0
 		move.w	d0,(a6)
+		; Y coordinate
 		move.b	(a1),(v_scrposy_vdp).w
+
+		; BG VRAM
 		move.w	#$8400,d0
 		move.b	(a0)+,d0
 		move.w	d0,(a6)
 		move.l	#$40000010,(vdp_control_port).l
 		move.l	(v_scrposy_vdp).w,(vdp_data_port).l
+
+		; Palette cycle index
 		moveq	#0,d0
 		move.b	(a0)+,d0
 		bmi.s	loc_49E8
@@ -3500,6 +3515,7 @@ loc_49F4:
 		lea	(Pal_SSCyc2).l,a1
 		adda.w	d1,a1
 		andi.w	#$7F,d0
+
 		bclr	#0,d0
 		beq.s	loc_4A18
 		lea	(v_pal_dry+$6E).w,a2
@@ -3526,17 +3542,69 @@ loc_4A2E:
 ; End of function PalCycle_SS
 
 ; ===========================================================================
-byte_4A3C:	dc.b 3,	0, 7, $92, 3, 0, 7, $90, 3, 0, 7, $8E, 3, 0, 7,	$8C
+SSBGData:	macro time,anim,vram,index,flag1,flag2
+		dc.b	(time), (anim), ((vram)*$20)>>13
+	if flag1
+		dc.b	(index)|$80|(flag2)
+	else
+		dc.b	(index)*12
+	endif
+		endm
 
-		dc.b 3,	0, 7, $8B, 3, 0, 7, $80, 3, 0, 7, $82, 3, 0, 7,	$84
-		dc.b 3,	0, 7, $86, 3, 0, 7, $88, 7, 8, 7, 0, 7,	$A, 7, $C
-		dc.b $FF, $C, 7, $18, $FF, $C, 7, $18, 7, $A, 7, $C, 7,	8, 7, 0
-		dc.b 3,	0, 6, $88, 3, 0, 6, $86, 3, 0, 6, $84, 3, 0, 6,	$82
-		dc.b 3,	0, 6, $81, 3, 0, 6, $8A, 3, 0, 6, $8C, 3, 0, 6,	$8E
-		dc.b 3,	0, 6, $90, 3, 0, 6, $92, 7, 2, 6, $24, 7, 4, 6,	$30
-		dc.b $FF, 6, 6,	$3C, $FF, 6, 6,	$3C, 7,	4, 6, $30, 7, 2, 6, $24
+byte_4A3C:
+		; Time, anim, BG VRAM, palette cycle index & flags
+		SSBGData  3,  0, ArtTile_SS_Plane_6, 18, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6, 16, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6, 14, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6, 12, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6, 10, TRUE , TRUE
+
+		SSBGData  3,  0, ArtTile_SS_Plane_6,  0, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6,  2, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6,  4, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6,  6, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_6,  8, TRUE , FALSE
+
+
+		SSBGData  7,  8, ArtTile_SS_Plane_6,  0, FALSE, FALSE
+		SSBGData  7, 10, ArtTile_SS_Plane_6,  1, FALSE, FALSE
+		SSBGData -1, 12, ArtTile_SS_Plane_6,  2, FALSE, FALSE
+		SSBGData -1, 12, ArtTile_SS_Plane_6,  2, FALSE, FALSE
+		SSBGData  7, 10, ArtTile_SS_Plane_6,  1, FALSE, FALSE
+		SSBGData  7,  8, ArtTile_SS_Plane_6,  0, FALSE, FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5,  8, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5,  6, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5,  4, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5,  2, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5,  0, TRUE , TRUE
+
+		SSBGData  3,  0, ArtTile_SS_Plane_5, 10, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5, 12, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5, 14, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5, 16, TRUE , FALSE
+		SSBGData  3,  0, ArtTile_SS_Plane_5, 18, TRUE , FALSE
+
+		SSBGData  7,  2, ArtTile_SS_Plane_5,  3, FALSE, FALSE
+		SSBGData  7,  4, ArtTile_SS_Plane_5,  4, FALSE, FALSE
+		SSBGData -1,  6, ArtTile_SS_Plane_5,  5, FALSE, FALSE
+		SSBGData -1,  6, ArtTile_SS_Plane_5,  5, FALSE, FALSE
+		SSBGData  7,  4, ArtTile_SS_Plane_5,  4, FALSE, FALSE
+		SSBGData  7,  2, ArtTile_SS_Plane_5,  3, FALSE, FALSE
 		even
-byte_4ABC:	dc.b $10, 1, $18, 0, $18, 1, $20, 0, $20, 1, $28, 0, $28, 1
+
+SSFGData:	macro vram,y
+		dc.b ((vram)*$20)>>10, (y)>>8
+		endm
+
+byte_4ABC:
+		; FG VRAM, Y coordinate
+		SSFGData ArtTile_SS_Plane_1, $100
+		SSFGData ArtTile_SS_Plane_2,    0
+		SSFGData ArtTile_SS_Plane_2, $100
+		SSFGData ArtTile_SS_Plane_3,    0
+		SSFGData ArtTile_SS_Plane_3, $100
+		SSFGData ArtTile_SS_Plane_4,    0
+		SSFGData ArtTile_SS_Plane_4, $100
 		even
 
 Pal_SSCyc1:	binclude	"palette/Cycle - Special Stage 1.bin"
@@ -8439,10 +8507,10 @@ AddPoints:
 
 
 ContScrCounter:
-		locVRAM	$DF80
+		locVRAM	ArtTile_Continue_Number*$20
 		lea	(vdp_data_port).l,a6
 		lea	(Hud_10).l,a2
-		moveq	#1,d6
+		moveq	#2-1,d6
 		moveq	#0,d4
 		lea	Art_Hud(pc),a1 ; load numbers patterns
 
