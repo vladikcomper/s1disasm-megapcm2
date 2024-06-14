@@ -37,15 +37,15 @@ PSG_Index:
 		dc.l PSG1, PSG2, PSG3
 		dc.l PSG4, PSG5, PSG6
 		dc.l PSG7, PSG8, PSG9
-PSG1:		binclude	"sound/psg/psg1.bin"
-PSG2:		binclude	"sound/psg/psg2.bin"
-PSG3:		binclude	"sound/psg/psg3.bin"
-PSG4:		binclude	"sound/psg/psg4.bin"
-PSG6:		binclude	"sound/psg/psg6.bin"
-PSG5:		binclude	"sound/psg/psg5.bin"
-PSG7:		binclude	"sound/psg/psg7.bin"
-PSG8:		binclude	"sound/psg/psg8.bin"
-PSG9:		binclude	"sound/psg/psg9.bin"
+PSG1:		binclude "sound/psg/psg1.bin"
+PSG2:		binclude "sound/psg/psg2.bin"
+PSG3:		binclude "sound/psg/psg3.bin"
+PSG4:		binclude "sound/psg/psg4.bin"
+PSG6:		binclude "sound/psg/psg6.bin"
+PSG5:		binclude "sound/psg/psg5.bin"
+PSG7:		binclude "sound/psg/psg7.bin"
+PSG8:		binclude "sound/psg/psg8.bin"
+PSG9:		binclude "sound/psg/psg9.bin"
 ; ---------------------------------------------------------------------------
 ; New tempos for songs during speed shoes
 ; ---------------------------------------------------------------------------
@@ -2584,7 +2584,7 @@ cfOpF9:
 ; DAC driver (Kosinski-compressed)
 ; ---------------------------------------------------------------------------
 ; Kos_Z80:
-DACDriver:	include		"sound/z80.asm"
+DACDriver:	include "sound/z80.asm"
 
 ; ---------------------------------------------------------------------------
 ; SMPS2ASM - A collection of macros that make SMPS's bytecode human-readable.
@@ -2810,7 +2810,7 @@ SoundD0:	include	"sound/sfx/SndD0 - Waterfall.asm"
 		if ((*)&$7FFF)+Size_of_SegaPCM>$8000
 			align $8000
 		endif
-SegaPCM:	binclude	"sound/dac/sega.pcm"
+SegaPCM:	binclude "sound/dac/sega.pcm"
 SegaPCM_End
 		even
 
