@@ -2112,7 +2112,7 @@ GM_Title:
 		clr.b	(f_wtr_state).w
 		bsr.w	ClearScreen
 
-		clearRAM v_objspace,v_objend
+		clearRAM v_objspace
 
 		locVRAM	ArtTile_Title_Japanese_Text*tile_size
 		lea	(Nem_JapNames).l,a0 ; load Japanese credits
@@ -2127,7 +2127,7 @@ GM_Title:
 
 		copyTilemap	v_256x256&$FFFFFF,vram_fg,40,28
 
-		clearRAM v_palette_fading,v_palette_fading_end
+		clearRAM v_palette_fading
 
 		moveq	#palid_Sonic,d0	; load Sonic's palette
 		bsr.w	PalLoad_Fade
@@ -2314,7 +2314,7 @@ Tit_ChkLevSel:
 		moveq	#palid_LevelSel,d0
 		bsr.w	PalLoad	; load level select palette
 
-		clearRAM v_hscrolltablebuffer,v_hscrolltablebuffer_end
+		clearRAM v_hscrolltablebuffer
 
 		move.l	d0,(v_scrposy_vdp).w
 		disable_ints
@@ -2776,10 +2776,10 @@ loc_37FC:
 		bsr.w	AddPLC		; load standard	patterns
 
 Level_ClrRam:
-		clearRAM v_objspace,v_objend
-		clearRAM v_misc_variables,v_misc_variables_end
-		clearRAM v_levelvariables,v_levelvariables_end
-		clearRAM v_timingandscreenvariables,v_timingandscreenvariables_end
+		clearRAM v_objspace
+		clearRAM v_misc_variables
+		clearRAM v_levelvariables
+		clearRAM v_timingandscreenvariables
 
 		disable_ints
 		bsr.w	ClearScreen
@@ -3216,10 +3216,10 @@ GM_Special:
 		moveq	#plcid_SpecialStage,d0
 		bsr.w	QuickPLC	; load special stage patterns
 
-		clearRAM v_objspace,v_objend
-		clearRAM v_levelvariables,v_levelvariables_end
-		clearRAM v_timingvariables,v_timingvariables_end
-		clearRAM v_ngfx_buffer,v_ngfx_buffer_end
+		clearRAM v_objspace
+		clearRAM v_levelvariables
+		clearRAM v_timingvariables
+		clearRAM v_ngfx_buffer
 
 		clr.b	(f_wtr_state).w
 		clr.w	(f_restart).w
@@ -3339,7 +3339,7 @@ loc_47D4:
 		move.w	#bgm_GotThrough,d0
 		jsr	(PlaySound_Special).l	 ; play end-of-level music
 
-		clearRAM v_objspace,v_objend
+		clearRAM v_objspace
 
 		move.b	#id_SSResult,(v_ssrescard).w ; load results screen object
 
@@ -3732,7 +3732,7 @@ GM_Continue:
 		move.w	#$8700,(a6)	; background colour
 		bsr.w	ClearScreen
 
-		clearRAM v_objspace,v_objend
+		clearRAM v_objspace
 
 		locVRAM	ArtTile_Title_Card*tile_size
 		lea	(Nem_TitleCard).l,a0 ; load title card patterns
@@ -3822,10 +3822,10 @@ GM_Ending:
 		bsr.w	PlaySound_Special ; stop music
 		bsr.w	PaletteFadeOut
 
-		clearRAM v_objspace,v_objend
-		clearRAM v_misc_variables,v_misc_variables_end
-		clearRAM v_levelvariables,v_levelvariables_end
-		clearRAM v_timingandscreenvariables,v_timingandscreenvariables_end
+		clearRAM v_objspace
+		clearRAM v_misc_variables
+		clearRAM v_levelvariables
+		clearRAM v_timingandscreenvariables
 
 		disable_ints
 		move.w	(v_vdp_buffer1).w,d0
@@ -4050,13 +4050,13 @@ GM_Credits:
 		clr.b	(f_wtr_state).w
 		bsr.w	ClearScreen
 
-		clearRAM v_objspace,v_objend
+		clearRAM v_objspace
 
 		locVRAM	ArtTile_Credits_Font*tile_size
 		lea	(Nem_CreditText).l,a0 ;	load credits alphabet patterns
 		bsr.w	NemDec
 
-		clearRAM v_palette_fading,v_palette_fading_end
+		clearRAM v_palette_fading
 
 		moveq	#palid_Sonic,d0
 		bsr.w	PalLoad_Fade	; load Sonic's palette
@@ -4169,12 +4169,12 @@ TryAgainEnd:
 		clr.b	(f_wtr_state).w
 		bsr.w	ClearScreen
 
-		clearRAM v_objspace,v_objend
+		clearRAM v_objspace
 
 		moveq	#plcid_TryAgain,d0
 		bsr.w	QuickPLC	; load "TRY AGAIN" or "END" patterns
 
-		clearRAM v_palette_fading,v_palette_fading_end
+		clearRAM v_palette_fading
 
 		moveq	#palid_Ending,d0
 		bsr.w	PalLoad_Fade	; load ending palette
@@ -6229,7 +6229,7 @@ Map_Smash:	include	"_maps/Smashable Walls.asm"
 
 ExecuteObjects:
 		lea	(v_objspace).w,a0 ; set address for object RAM
-		moveq	#(v_objend-v_objspace)/object_size-1,d7
+		moveq	#(v_objspace_end-v_objspace)/object_size-1,d7
 		moveq	#0,d0
 		cmpi.b	#6,(v_player+obRoutine).w
 		bhs.s	loc_D362
