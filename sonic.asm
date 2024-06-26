@@ -1971,26 +1971,31 @@ PalLoad_Water:
 ; ---------------------------------------------------------------------------
 ; Palette data
 ; ---------------------------------------------------------------------------
-Pal_SegaBG:	binclude	"palette/Sega Background.bin"
-Pal_Title:	binclude	"palette/Title Screen.bin"
-Pal_LevelSel:	binclude	"palette/Level Select.bin"
-Pal_Sonic:	binclude	"palette/Sonic.bin"
-Pal_GHZ:	binclude	"palette/Green Hill Zone.bin"
-Pal_LZ:		binclude	"palette/Labyrinth Zone.bin"
-Pal_LZWater:	binclude	"palette/Labyrinth Zone Underwater.bin"
-Pal_MZ:		binclude	"palette/Marble Zone.bin"
-Pal_SLZ:	binclude	"palette/Star Light Zone.bin"
-Pal_SYZ:	binclude	"palette/Spring Yard Zone.bin"
-Pal_SBZ1:	binclude	"palette/SBZ Act 1.bin"
-Pal_SBZ2:	binclude	"palette/SBZ Act 2.bin"
-Pal_Special:	binclude	"palette/Special Stage.bin"
-Pal_SBZ3:	binclude	"palette/SBZ Act 3.bin"
-Pal_SBZ3Water:	binclude	"palette/SBZ Act 3 Underwater.bin"
-Pal_LZSonWater:	binclude	"palette/Sonic - LZ Underwater.bin"
-Pal_SBZ3SonWat:	binclude	"palette/Sonic - SBZ3 Underwater.bin"
-Pal_SSResult:	binclude	"palette/Special Stage Results.bin"
-Pal_Continue:	binclude	"palette/Special Stage Continue Bonus.bin"
-Pal_Ending:	binclude	"palette/Ending.bin"
+bincludePalette macro path,{INTLABEL},{GLOBALSYMBOLS}
+__LABEL__:	binclude	path
+__LABEL___end:
+	endm
+
+Pal_SegaBG:	bincludePalette	"palette/Sega Background.bin"
+Pal_Title:	bincludePalette	"palette/Title Screen.bin"
+Pal_LevelSel:	bincludePalette	"palette/Level Select.bin"
+Pal_Sonic:	bincludePalette	"palette/Sonic.bin"
+Pal_GHZ:	bincludePalette	"palette/Green Hill Zone.bin"
+Pal_LZ:		bincludePalette	"palette/Labyrinth Zone.bin"
+Pal_LZWater:	bincludePalette	"palette/Labyrinth Zone Underwater.bin"
+Pal_MZ:		bincludePalette	"palette/Marble Zone.bin"
+Pal_SLZ:	bincludePalette	"palette/Star Light Zone.bin"
+Pal_SYZ:	bincludePalette	"palette/Spring Yard Zone.bin"
+Pal_SBZ1:	bincludePalette	"palette/SBZ Act 1.bin"
+Pal_SBZ2:	bincludePalette	"palette/SBZ Act 2.bin"
+Pal_Special:	bincludePalette	"palette/Special Stage.bin"
+Pal_SBZ3:	bincludePalette	"palette/SBZ Act 3.bin"
+Pal_SBZ3Water:	bincludePalette	"palette/SBZ Act 3 Underwater.bin"
+Pal_LZSonWater:	bincludePalette	"palette/Sonic - LZ Underwater.bin"
+Pal_SBZ3SonWat:	bincludePalette	"palette/Sonic - SBZ3 Underwater.bin"
+Pal_SSResult:	bincludePalette	"palette/Special Stage Results.bin"
+Pal_Continue:	bincludePalette	"palette/Special Stage Continue Bonus.bin"
+Pal_Ending:	bincludePalette	"palette/Ending.bin"
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	wait for VBlank routines to complete
