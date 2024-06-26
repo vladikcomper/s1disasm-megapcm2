@@ -38,4 +38,4 @@ Cred_Main:	; Routine 0
 ; ===========================================================================
 
 Cred_Display:	; Routine 2
-		jmp	DisplaySprite
+		jmp	(DisplaySprite).l
