@@ -295,6 +295,7 @@ v_palette_water_end:
 v_palette:		ds.b	$80		; main palette
 v_palette_end:
 v_palette_fading:	ds.b	$80		; duplicate palette, used for transitions
+v_palette_fading_end:
 v_objstate:		ds.b	$C0		; object state list
 v_objstate_end:
 			ds.b	$140		; stack
