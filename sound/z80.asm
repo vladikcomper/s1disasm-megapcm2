@@ -195,7 +195,7 @@ zPlaySEGAPCMLoop:
 	ld	(ix+0),c		; 19	; Select DAC output register
 	ld	(ix+1),a		; 19	; Send current data
 
-	ld	b,pcmLoopCounter(16000,90) ; 7	; b = pitch of the SEGA sample
+	ld	b,pcmLoopCounter(16000)	; 7	; b = pitch of the SEGA sample
 	djnz	$			; 8	; Pitch loop
 
 	inc	de			; 6	; Point to next byte of DAC sample
