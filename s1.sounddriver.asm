@@ -1494,9 +1494,9 @@ InitMusicPlayback:
 	endif
 		move.b	#$80,SMPS_RAM.v_sound_id(a6)	; set music to $80 (silence)
 	if FixBugs
-		lea	SMPS_RAM.v_music_track_ram.TrackVoiceControl(a6),a1
+		lea	SMPS_RAM.v_music_dac_track.VoiceControl(a6),a1
 		lea	FMDACInitBytes(pc),a2
-		moveq	#SMPS_MUSIC_DAC_FM_TRACK_COUNT-1,d1	; 7 DAC/FM tracks
+		moveq	#SMPS_MUSIC_FM_DAC_TRACK_COUNT-1,d1	; 7 DAC/FM tracks
 		bsr.s	.writeloop
 		lea	PSGInitBytes(pc),a2
 		moveq	#SMPS_MUSIC_PSG_TRACK_COUNT-1,d1	; 3 PSG tracks
