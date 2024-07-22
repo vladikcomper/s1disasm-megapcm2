@@ -121,11 +121,11 @@ waitZ80:	macro
 ; reset the Z80
 ; ---------------------------------------------------------------------------
 
-resetZ80:	macro
+deassertZ80Reset:	macro
 		move.w	#$100,(z80_reset).l
 		endm
 
-resetZ80a:	macro
+assertZ80Reset:	macro
 		move.w	#0,(z80_reset).l
 		endm
 
