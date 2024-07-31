@@ -353,6 +353,19 @@ GameInit:
 		bsr.w	JoypadInit
 		move.b	#id_Sega,(v_gamemode).w ; set Game Mode to Sega Screen
 
+		jsr	MegaPCM_LoadDriver
+		lea	SampleTable, a0
+		jsr	MegaPCM_LoadSampleTable
+		tst.w	d0			; was sample table loaded successfully?
+		beq.s	.SampleTableOk		; if yes, branch
+		ifdef __DEBUG__
+			; for MD Debugger v.2.5 or above
+			RaiseError "MegaPCM_LoadSampleTable returned %<.b d0>", MPCM_Debugger_LoadSampleTableException
+		else
+			illegal
+		endif
+.SampleTableOk:
+
 MainGameLoop:
 		move.b	(v_gamemode).w,d0 ; load Game Mode
 		andi.w	#$1C,d0	; limit Game Mode value to $1C max (change to a maximum of 7C to add more game modes)
@@ -2036,7 +2049,7 @@ Sega_WaitPal:
 		bsr.w	PlaySound_Special	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		move.w	#$1E,(v_demolength).w
+		move.w	#$1E+2*60,(v_demolength).w
 
 Sega_WaitEnd:
 		move.b	#2,(v_vbla_routine).w
@@ -9300,6 +9313,10 @@ ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 		dc.b $FF
 		endm
 		endif
+
+
+		include	"MegaPCM.asm"
+		include	"SampleTable.asm"
 
 SoundDriver:	include "s1.sounddriver.asm"
 

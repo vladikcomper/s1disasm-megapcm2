@@ -707,21 +707,9 @@ ptr_flgend
 ; ---------------------------------------------------------------------------
 ; Sound_E1: PlaySega:
 PlaySegaSound:
-		move.b	#$88,(z80_ram+zDAC_Sample).l	; Queue Sega PCM
-		
-		move.w	#$11,d1
-; loc_71FC0:
-.busyloop_outer:
-		move.w	#-1,d0
-; loc_71FC4:
-.busyloop:
-		nop	
-		dbf	d0,.busyloop
+		moveq	#$FFFFFF8C, d0
+		jmp	MegaPCM_PlaySample
 
-		dbf	d1,.busyloop_outer
-
-		addq.w	#4,sp	; Tamper return value so we don't return to caller
-		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play music track $81-$9F
@@ -2796,23 +2784,4 @@ SoundCF:	include "sound/sfx/SndCF - Signpost.asm"
 ; ---------------------------------------------------------------------------
 SoundD0:	include "sound/sfx/SndD0 - Waterfall.asm"
 		even
-
-; ---------------------------------------------------------------------------
-; 'Sega' chant PCM sample
-; ---------------------------------------------------------------------------
-		; Don't let Sega sample cross $8000-byte boundary
-		; (DAC driver doesn't switch banks automatically)
-		if ((*)&$7FFF)+Size_of_SegaPCM>$8000
-			align $8000
-		endif
-SegaPCM:	binclude "sound/dac/sega.pcm"
-SegaPCM_End
-		even
-
-		if SegaPCM_End-SegaPCM>$8000
-			fatal "Sega sound must fit within $8000 bytes, but you have a $\{SegaPCM_End-SegaPCM} byte Sega sound."
-		endif
-		if SegaPCM_End-SegaPCM>Size_of_SegaPCM
-			fatal "Size_of_SegaPCM = $\{Size_of_SegaPCM}, but you have a $\{SegaPCM_End-SegaPCM} byte Sega sound."
-		endif
 
