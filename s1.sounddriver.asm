@@ -227,7 +227,7 @@ UpdateMusic:
 		jsr	PSGUpdateTrack(pc)
 ; loc_71C44:
 DoStartZ80:
-		startZ80
+		
 		rts	
 ; End of function UpdateMusic
 
@@ -708,7 +708,7 @@ ptr_flgend
 ; Sound_E1: PlaySega:
 PlaySegaSound:
 		move.b	#$88,(z80_ram+zDAC_Sample).l	; Queue Sega PCM
-		startZ80
+		
 		move.w	#$11,d1
 ; loc_71FC0:
 .busyloop_outer:
@@ -2174,7 +2174,7 @@ cfFadeInToPrevious:
 		move.b	#$80,SMPS_RAM.f_fadein_flag(a6)		; Trigger fade-in
 		move.b	#$28,SMPS_RAM.v_fadein_counter(a6)	; Fade-in delay
 		clr.b	SMPS_RAM.f_1up_playing(a6)
-		startZ80
+		
 		addq.w	#8,sp		; Tamper return value so we don't return to caller
 		rts	
 ; ===========================================================================
