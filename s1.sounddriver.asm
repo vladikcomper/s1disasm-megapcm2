@@ -273,22 +273,13 @@ DACUpdateTrack:
 		move.b	SMPS_Track.SavedDAC(a5),d0	; Get sample
 		cmpi.b	#$80,d0				; Is it a rest?
 		beq.s	.locret				; Return if yes
-		btst	#3,d0				; Is bit 3 set (samples between $88-$8F)?
-		bne.s	.timpani			; Various timpani
-		move.b	d0,(z80_ram+zDAC_Sample).l
+		MPCM_stopZ80				;
+		move.b	d0, z80_ram+Z_MPCM_CommandInput	; send DAC sample to Mega PCM
+		MPCM_startZ80
+
 ; locret_71CAA:
 .locret:
-		rts	
-; ===========================================================================
-; loc_71CAC:
-.timpani:
-		subi.b	#$88,d0				; Convert into an index
-		move.b	DAC_sample_rate(pc,d0.w),d0
-		; Warning: this affects the raw pitch of sample $83, meaning it will
-		; use this value from then on.
-		move.b	d0,(z80_ram+zTimpani_Pitch).l
-		move.b	#$83,(z80_ram+zDAC_Sample).l	; Use timpani
-		rts	
+		rts
 ; End of function DACUpdateTrack
 
 ; ===========================================================================
@@ -1639,8 +1630,8 @@ locret_72714:
 ; ===========================================================================
 ; loc_72716:
 WriteFMIorIIMain:
-		btst	#2,SMPS_Track.PlaybackControl(a5)	; Is track being overriden by sfx?
-		bne.s	.locret					; Return if yes
+		btst	#2,SMPS_Track.PlaybackControl(a5); Is track being overriden by sfx?
+		bne.s	.locret				; Return if yes
 		bra.w	WriteFMIorII
 ; ===========================================================================
 ; locret_72720:
@@ -1651,64 +1642,51 @@ WriteFMIorIIMain:
 
 ; sub_72722:
 WriteFMIorII:
-		btst	#2,SMPS_Track.VoiceControl(a5)	; Is this bound for part I or II?
-		bne.s	WriteFMIIPart			; Branch if for part II
-		add.b	SMPS_Track.VoiceControl(a5),d0	; Add in voice control bits
-; End of function WriteFMIorII
+		move.b	SMPS_Track.VoiceControl(a5), d2
+		subq.b	#4, d2				; Is this bound for part I or II?
+		bcc.s	WriteFMIIPart			; If yes, branch
+		addq.b	#4, d2				; Add in voice control bits
+		add.b	d2, d0				;
 
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-; Strangely, despite this driver being SMPS 68k Type 1b,
-; WriteFMI and WriteFMII are the Type 1a versions.
-; In Sonic 1's prototype, they were the Type 1b versions.
-; I wonder why they were changed?
-
-; sub_7272E:
+; ---------------------------------------------------------------------------
 WriteFMI:
-		move.b	(ym2612_a0).l,d2
-		btst	#7,d2		; Is FM busy?
-		bne.s	WriteFMI	; Loop if so
-		move.b	d0,(ym2612_a0).l
-		nop	
-		nop	
-		nop	
-; loc_72746:
-.waitloop:
-		move.b	(ym2612_a0).l,d2
-		btst	#7,d2		; Is FM busy?
-		bne.s	.waitloop	; Loop if so
-
-		move.b	d1,(ym2612_d0).l
-		rts	
+		MPCM_stopZ80
+		MPCM_ensureYMWriteReady
+.waitLoop:	tst.b	(ym2612_a0).l		; is FM busy?
+		bmi.s	.waitLoop		; branch if yes
+		move.b	d0, (ym2612_a0).l
+		nop
+		move.b	d1, (ym2612_d0).l
+		nop
+		nop
+.waitLoop2:	tst.b	(ym2612_a0).l		; is FM busy?
+		bmi.s	.waitLoop2		; branch if yes
+		move.b	#$2A, (ym2612_a0).l	; restore DAC output for Mega PCM
+		MPCM_startZ80
+		rts
 ; End of function WriteFMI
 
 ; ===========================================================================
 ; loc_7275A:
 WriteFMIIPart:
-		move.b	SMPS_Track.VoiceControl(a5),d2	; Get voice control bits
-		bclr	#2,d2				; Clear chip toggle
-		add.b	d2,d0				; Add in to destination register
+		add.b	d2,d0			; Add in to destination register
 
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-; sub_72764:
+; ---------------------------------------------------------------------------
 WriteFMII:
-		move.b	(ym2612_a0).l,d2
-		btst	#7,d2		; Is FM busy?
-		bne.s	WriteFMII	; Loop if so
-		move.b	d0,(ym2612_a1).l
-		nop	
-		nop	
-		nop	
-; loc_7277C:
-.waitloop:
-		move.b	(ym2612_a0).l,d2
-		btst	#7,d2		; Is FM busy?
-		bne.s	.waitloop	; Loop if so
-
-		move.b	d1,(ym2612_d1).l
-		rts	
+		MPCM_stopZ80
+		MPCM_ensureYMWriteReady
+.waitLoop:	tst.b	(ym2612_a0).l		; is FM busy?
+		bmi.s	.waitLoop		; branch if yes
+		move.b	d0, (ym2612_a1).l
+		nop
+		move.b	d1, (ym2612_d1).l
+		nop
+		nop
+.waitLoop2:	tst.b	(ym2612_a0).l		; is FM busy?
+		bmi.s	.waitLoop2		; branch if yes
+		move.b	#$2A, (ym2612_a0).l	; restore DAC output for Mega PCM
+		MPCM_startZ80
+		rts
 ; End of function WriteFMII
 
 ; ===========================================================================
@@ -2562,12 +2540,6 @@ cfOpF9:
 		move.b	#$8C,d0		; D1L/RR of Operator 4
 		move.b	#$F,d1		; Loaded with fixed value (max RR, 1TL)
 		bra.w	WriteFMI
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; DAC driver (Kosinski-compressed)
-; ---------------------------------------------------------------------------
-; Kos_Z80:
-DACDriver:	include "sound/z80.asm"
 
 ; ---------------------------------------------------------------------------
 ; SMPS2ASM - A collection of macros that make SMPS's bytecode human-readable.
