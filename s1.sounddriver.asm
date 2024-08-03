@@ -517,19 +517,23 @@ FMSetRest:
 ; ===========================================================================
 ; loc_71E50:
 PauseMusic:
-		bmi.s	.unpausemusic	; Branch if music is being unpaused
+		bmi.s	.unpausemusic			; Branch if music is being unpaused
 		cmpi.b	#2,SMPS_RAM.f_pausemusic(a6)
-		beq.w	.unpausedallfm
+		beq.w	.done
 		move.b	#2,SMPS_RAM.f_pausemusic(a6)
-		moveq	#2,d3
-		move.b	#$B4,d0		; Command to set AMS/FMS/panning
-		moveq	#0,d1		; No panning, AMS or FMS
-; loc_71E6A:
-.killpanloop:
-		jsr	WriteFMI(pc)
-		jsr	WriteFMII(pc)
+		moveq	#$FFFFFFB4,d0			; Command to set AMS/FMS/panning
+		moveq	#0,d1				; No panning, AMS or FMS
+		jsr	WriteFMI(pc)			; FM1
+		jsr	WriteFMII(pc)			; FM4
 		addq.b	#1,d0
-		dbf	d3,.killpanloop
+		jsr	WriteFMI(pc)			; FM2
+		jsr	WriteFMII(pc)			; FM5
+		addq.b	#1,d0
+		jsr	WriteFMI(pc)			; FM3
+		tst.b	SMPS_RAM.v_music_fm6_track(a6)	; is FM6 playing?
+		bpl.s	.notFM6				; if not, don't touch it, because FM6 is owned by Mega PCM then
+		jsr	WriteFMII(pc)			; FM6
+	.notFM6:
 
 		moveq	#2,d3
 		moveq	#$28,d0		; Key on/off register
@@ -542,6 +546,11 @@ PauseMusic:
 		dbf	d3,.noteoffloop
 
 		jsr	PSGSilenceAll(pc)
+
+		MPCM_stopZ80
+		move.b  #Z_MPCM_COMMAND_PAUSE, MPCM_Z80_RAM+Z_MPCM_CommandInput ; pause DAC
+		MPCM_startZ80
+
 		bra.w	DoStartZ80
 ; ===========================================================================
 ; loc_71E94:
@@ -590,6 +599,11 @@ PauseMusic:
 		jsr	WriteFMIorII(pc)
 ; loc_71EFE:
 .unpausedallfm:
+		MPCM_stopZ80
+		move.b	#0, MPCM_Z80_RAM+Z_MPCM_CommandInput	; unpause DAC
+		MPCM_startZ80
+
+.done:
 		bra.w	DoStartZ80
 
 ; ---------------------------------------------------------------------------
