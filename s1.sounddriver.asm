@@ -935,10 +935,6 @@ PSGInitBytes:	dc.b $80, $A0, $C0	; Specifically, these configure writes to the P
 Sound_PlaySFX:
 		tst.b	SMPS_RAM.f_1up_playing(a6)	; Is 1-up playing?
 		bne.w	.clear_sndprio			; Exit is it is
-		tst.b	SMPS_RAM.v_fadeout_counter(a6)	; Is music being faded out?
-		bne.w	.clear_sndprio			; Exit if it is
-		tst.b	SMPS_RAM.f_fadein_flag(a6)	; Is music being faded in?
-		bne.w	.clear_sndprio			; Exit if it is
 		cmpi.b	#sfx_Ring,d7			; is ring sound	effect played?
 		bne.s	.sfx_notRing			; if not, branch
 		tst.b	SMPS_RAM.v_ring_speaker(a6)	; Is the ring sound playing on right speaker?
@@ -1076,10 +1072,6 @@ SFX_SFXChannelRAM:
 Sound_PlaySpecial:
 		tst.b	SMPS_RAM.f_1up_playing(a6)	; Is 1-up playing?
 		bne.w	.locret				; Return if so
-		tst.b	SMPS_RAM.v_fadeout_counter(a6)	; Is music being faded out?
-		bne.w	.locret				; Exit if it is
-		tst.b	SMPS_RAM.f_fadein_flag(a6)	; Is music being faded in?
-		bne.w	.locret				; Exit if it is
 		movea.l	(Go_SpecSoundIndex).l,a0
 		subi.b	#spec__First,d7			; Make it 0-based
 		lsl.w	#2,d7
@@ -1314,7 +1306,6 @@ FadeOutMusic:
 		jsr	StopSpecialSFX(pc)
 		move.b	#3,SMPS_RAM.v_fadeout_delay(a6)			; Set fadeout delay to 3
 		move.b	#$28,SMPS_RAM.v_fadeout_counter(a6)		; Set fadeout counter
-		clr.b	SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Stop DAC track
 		clr.b	SMPS_RAM.f_speedup(a6)				; Disable speed shoes tempo
 		rts	
 
@@ -1414,9 +1405,6 @@ FMSilenceAll:
 ; ---------------------------------------------------------------------------
 ; Sound_E4: StopSoundAndMusic:
 StopAllSound:
-		moveq	#$2B,d0		; Enable/disable DAC
-		move.b	#$80,d1		; Enable DAC
-		jsr	WriteFMI(pc)
 		moveq	#$27,d0		; Timers, FM3/FM6 mode
 		moveq	#0,d1		; FM3/FM6 normal mode, disable timers
 		jsr	WriteFMI(pc)
@@ -1431,6 +1419,10 @@ StopAllSound:
 .clearramloop:
 		clr.l	(a0)+
 		dbf	d0,.clearramloop
+
+		MPCM_stopZ80
+                move.b  #Z_MPCM_COMMAND_STOP, MPCM_Z80_RAM+Z_MPCM_CommandInput ; stop DAC playback
+		MPCM_startZ80
 
 		move.b	#$80,SMPS_RAM.v_sound_id(a6)	; set music to $80 (silence)
 		jsr	FMSilenceAll(pc)
