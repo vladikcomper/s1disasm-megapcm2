@@ -1323,6 +1323,24 @@ DoFadeOut:
 		subq.b	#1,SMPS_RAM.v_fadeout_counter(a6)	; Update fade counter
 		beq.w	StopAllSound				; Branch if fade is done
 		move.b	#3,SMPS_RAM.v_fadeout_delay(a6)		; Reset fade delay
+
+		; Fade out DAC
+		lea	SMPS_RAM.v_music_dac_track(a6),a5
+		tst.b	(a5)					; is DAC playing?
+		bpl.s	.dac_done				; if yes, branch
+		addq.b	#4, SMPS_Track.Volume(a5)		; Increase volume attenuation
+		bpl.s	.dac_update_volume
+		and.b	#$7F, (a5)				; Stop channel
+		bra.s	.dac_done
+
+.dac_update_volume:
+		move.b	SMPS_Track.Volume(a5), d0
+		lsr.b	#3, d0
+		MPCM_stopZ80
+		move.b	d0, MPCM_Z80_RAM+Z_MPCM_VolumeInput
+		MPCM_startZ80
+.dac_done:
+
 		lea	SMPS_RAM.v_music_fm_tracks(a6),a5
 		moveq	#SMPS_MUSIC_FM_TRACK_COUNT-1,d7		; 6 FM tracks
 ; loc_72524:
@@ -1562,9 +1580,27 @@ DoFadeIn:
 ; loc_72688:
 .continuefade:
 		tst.b	SMPS_RAM.v_fadein_counter(a6)		; Is fade done?
-		beq.s	.fadedone				; Branch if yes
+		beq.w	.fadedone				; Branch if yes
 		subq.b	#1,SMPS_RAM.v_fadein_counter(a6)	; Update fade counter
 		move.b	#2,SMPS_RAM.v_fadein_delay(a6)		; Reset fade delay
+
+		; Fade in DAC
+		lea	SMPS_RAM.v_music_dac_track(a6),a5
+		tst.b	(a5)					; is DAC playing?
+		bpl.s	.dac_done				; if yes, branch
+		subq.b	#4, SMPS_Track.Volume(a5)		; Increase volume attenuation
+		bcc.s	.dac_update_volume
+		move.b	#0, SMPS_Track.Volume(a5)
+		bra.s	.dac_done
+
+.dac_update_volume:
+		move.b	SMPS_Track.Volume(a5), d0
+		lsr.b	#3, d0
+		MPCM_stopZ80
+		move.b	d0, MPCM_Z80_RAM+Z_MPCM_VolumeInput
+		MPCM_startZ80
+.dac_done:
+
 		lea	SMPS_RAM.v_music_fm_tracks(a6),a5
 		moveq	#SMPS_MUSIC_FM_TRACK_COUNT-1,d7		; 6 FM tracks
 ; loc_7269E:
@@ -1598,7 +1634,6 @@ DoFadeIn:
 ; ===========================================================================
 ; loc_726D6:
 .fadedone:
-		bclr	#2,SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Clear 'SFX overriding' bit
 		clr.b	SMPS_RAM.f_fadein_flag(a6)				; Stop fadein
 		rts	
 ; End of function DoFadeIn
@@ -2124,7 +2159,11 @@ cfFadeInToPrevious:
 		move.l	(a1)+,(a0)+
 		dbf	d0,.restoreramloop
 
-		bset	#2,SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Set 'SFX overriding' bit
+		tst.b	SMPS_RAM.v_music_dac_track(a6)			; is DAC playing?
+		bpl.s	.dacdone					; if not, branch
+		move.b	#$7F, SMPS_RAM.v_music_dac_track.Volume(a6)	; set initial DAC volume
+.dacdone:
+
 		movea.l	a5,a3
 		move.b	#$28,d6
 		sub.b	SMPS_RAM.v_fadein_counter(a6),d6	; If fade already in progress, this adjusts track volume accordingly
