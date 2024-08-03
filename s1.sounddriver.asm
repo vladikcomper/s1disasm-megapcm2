@@ -824,6 +824,11 @@ Sound_PlayBGM:
 		jsr	WriteFMII(pc)
 ; loc_72114:
 .bgm_fmdone:
+		MPCM_stopZ80
+		move.b	#0, MPCM_Z80_RAM+Z_MPCM_VolumeInput	; set DAC volume to maximum
+		move.b	#$C0, MPCM_Z80_RAM+Z_MPCM_PanInput	; set panning to LR
+		MPCM_startZ80
+
 		moveq	#0,d7
 		move.b	3(a3),d7	; Load number of PSG tracks
 		beq.s	.bgm_psgdone	; branch if zero
@@ -2058,12 +2063,25 @@ cfPanningAMSFMS:
 		move.b	(a4)+,d1			; New AMS/FMS/panning value
 		tst.b	SMPS_Track.VoiceControl(a5)	; Is this a PSG track?
 		bmi.s	locret_72AEA			; Return if yes
-		move.b	SMPS_Track.AMSFMSPan(a5),d0	; Get current AMS/FMS/panning
-		andi.b	#$37,d0				; Retain bits 0-2, 3-4 if set
-		or.b	d0,d1				; Mask in new value
+		moveq	#$37, d0
+		and.b	SMPS_Track.AMSFMSPan(a5),d0	; Get current AMS/FMS
+		or.b	d0,d1				; Add new panning bits
 		move.b	d1,SMPS_Track.AMSFMSPan(a5)	; Store value
-		move.b	#$B4,d0				; Command to set AMS/FMS/panning
+		tst.b	SMPS_RAM.f_updating_dac(a6)	; Are we updating DAC?
+		bmi.s	.updateDACPanning		; If yes, branch
+		moveq	#$FFFFFFB4,d0			; Command to set AMS/FMS/panning
 		bra.w	WriteFMIorIIMain
+
+	.updateDACPanning:
+		; Send to DAC panning Mega PCM instead of updating it directly.
+		; Mega PCM needs to track panning on its own to restore it in
+		; normal sample is interrupted by an SFX sample
+		MPCM_stopZ80
+		and.b	#$C0, d1
+		move.b	d1, MPCM_Z80_RAM+Z_MPCM_PanInput
+		MPCM_startZ80
+		rts
+
 ; ===========================================================================
 
 locret_72AEA:
