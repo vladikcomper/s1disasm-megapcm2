@@ -24,6 +24,7 @@ FixBugs		  = 0	; change to 1 to enable bugfixes
 
 zeroOffsetOptimization = 0	; if 1, makes a handful of zero-offset instructions smaller
 
+	include "Debugger.asm"
 	include "MacroSetup.asm"
 	include	"Constants.asm"
 	include	"Variables.asm"
@@ -408,173 +409,6 @@ CheckSumError:
 
 .endlessloop:
 		bra.s	.endlessloop
-; ===========================================================================
-
-BusError:
-		move.b	#2,(v_errortype).w
-		bra.s	loc_43A
-
-AddressError:
-		move.b	#4,(v_errortype).w
-		bra.s	loc_43A
-
-IllegalInstr:
-		move.b	#6,(v_errortype).w
-		addq.l	#2,2(sp)
-		bra.s	loc_462
-
-ZeroDivide:
-		move.b	#8,(v_errortype).w
-		bra.s	loc_462
-
-ChkInstr:
-		move.b	#$A,(v_errortype).w
-		bra.s	loc_462
-
-TrapvInstr:
-		move.b	#$C,(v_errortype).w
-		bra.s	loc_462
-
-PrivilegeViol:
-		move.b	#$E,(v_errortype).w
-		bra.s	loc_462
-
-Trace:
-		move.b	#$10,(v_errortype).w
-		bra.s	loc_462
-
-Line1010Emu:
-		move.b	#$12,(v_errortype).w
-		addq.l	#2,2(sp)
-		bra.s	loc_462
-
-Line1111Emu:
-		move.b	#$14,(v_errortype).w
-		addq.l	#2,2(sp)
-		bra.s	loc_462
-
-ErrorExcept:
-		move.b	#0,(v_errortype).w
-		bra.s	loc_462
-; ===========================================================================
-
-loc_43A:
-		disable_ints
-		addq.w	#2,sp
-		move.l	(sp)+,(v_spbuffer).w
-		addq.w	#2,sp
-		movem.l	d0-a7,(v_regbuffer).w
-		bsr.w	ShowErrorMessage
-		move.l	2(sp),d0
-		bsr.w	ShowErrorValue
-		move.l	(v_spbuffer).w,d0
-		bsr.w	ShowErrorValue
-		bra.s	loc_478
-; ===========================================================================
-
-loc_462:
-		disable_ints
-		movem.l	d0-a7,(v_regbuffer).w
-		bsr.w	ShowErrorMessage
-		move.l	2(sp),d0
-		bsr.w	ShowErrorValue
-
-loc_478:
-		bsr.w	ErrorWaitForC
-		movem.l	(v_regbuffer).w,d0-a7
-		enable_ints
-		rte	
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-ShowErrorMessage:
-		lea	(vdp_data_port).l,a6
-		locVRAM	ArtTile_Error_Handler_Font*tile_size
-		lea	(Art_Text).l,a0
-		move.w	#(Art_Text_End-Art_Text-tile_size)/2-1,d1 ; strangely, this does not load the final tile
-.loadgfx:
-		move.w	(a0)+,(a6)
-		dbf	d1,.loadgfx
-
-		moveq	#0,d0		; clear	d0
-		move.b	(v_errortype).w,d0 ; load error code
-		move.w	ErrorText(pc,d0.w),d0
-		lea	ErrorText(pc,d0.w),a0
-		locVRAM	vram_fg+$604
-		moveq	#19-1,d1		; number of characters (minus 1)
-
-.showchars:
-		moveq	#0,d0
-		move.b	(a0)+,d0
-		addi.w	#-'0'+ArtTile_Error_Handler_Font,d0 ; rebase from ASCII to a VRAM index
-		move.w	d0,(a6)
-		dbf	d1,.showchars	; repeat for number of characters
-		rts	
-; End of function ShowErrorMessage
-
-; ===========================================================================
-ErrorText:	dc.w .exception-ErrorText, .bus-ErrorText
-		dc.w .address-ErrorText, .illinstruct-ErrorText
-		dc.w .zerodivide-ErrorText, .chkinstruct-ErrorText
-		dc.w .trapv-ErrorText, .privilege-ErrorText
-		dc.w .trace-ErrorText, .line1010-ErrorText
-		dc.w .line1111-ErrorText
-.exception:	dc.b "ERROR EXCEPTION    "
-.bus:		dc.b "BUS ERROR          "
-.address:	dc.b "ADDRESS ERROR      "
-.illinstruct:	dc.b "ILLEGAL INSTRUCTION"
-.zerodivide:	dc.b "@ERO DIVIDE        "
-.chkinstruct:	dc.b "CHK INSTRUCTION    "
-.trapv:		dc.b "TRAPV INSTRUCTION  "
-.privilege:	dc.b "PRIVILEGE VIOLATION"
-.trace:		dc.b "TRACE              "
-.line1010:	dc.b "LINE 1010 EMULATOR "
-.line1111:	dc.b "LINE 1111 EMULATOR "
-		even
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-ShowErrorValue:
-		move.w	#ArtTile_Error_Handler_Font+10,(a6)	; display "$" symbol
-		moveq	#7,d2
-
-.loop:
-		rol.l	#4,d0
-		bsr.s	.shownumber	; display 8 numbers
-		dbf	d2,.loop
-		rts	
-; End of function ShowErrorValue
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-.shownumber:
-		move.w	d0,d1
-		andi.w	#$F,d1
-		cmpi.w	#$A,d1
-		blo.s	.chars0to9
-		addq.w	#7,d1		; add 7 for characters A-F
-
-.chars0to9:
-		addi.w	#$7C0,d1
-		move.w	d1,(a6)
-		rts	
-; End of function sub_5CA
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-ErrorWaitForC:
-		bsr.w	ReadJoypads
-		cmpi.b	#btnC,(v_jpadpress1).w ; is button C pressed?
-		bne.w	ErrorWaitForC	; if not, branch
-		rts	
-; End of function ErrorWaitForC
-
 ; ===========================================================================
 
 Art_Text:	binclude	"artunc/menutext.bin" ; text used in level select and debug mode
@@ -9319,6 +9153,21 @@ ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 		include	"SampleTable.asm"
 
 SoundDriver:	include "s1.sounddriver.asm"
+
+; ==============================================================
+; --------------------------------------------------------------
+; Debugging modules
+; --------------------------------------------------------------
+
+   include   "ErrorHandler.asm"
+
+; --------------------------------------------------------------
+; WARNING!
+;	DO NOT put any data from now on! DO NOT use ROM padding!
+;	Symbol data should be appended here after ROM is compiled
+;	by ConvSym utility, otherwise debugger modules won't be able
+;	to resolve symbol names.
+; --------------------------------------------------------------
 
 ; end of 'ROM'
 		even
