@@ -505,19 +505,23 @@ FMSetRest:
 ; ===========================================================================
 ; loc_71E50:
 PauseMusic:
-		bmi.s	.unpausemusic	; Branch if music is being unpaused
+		bmi.s	.unpausemusic			; Branch if music is being unpaused
 		cmpi.b	#2,SMPS_RAM.f_pausemusic(a6)
-		beq.w	.unpausedallfm
+		beq.w	.done
 		move.b	#2,SMPS_RAM.f_pausemusic(a6)
-		moveq	#2,d3
-		move.b	#$B4,d0		; Command to set AMS/FMS/panning
-		moveq	#0,d1		; No panning, AMS or FMS
-; loc_71E6A:
-.killpanloop:
-		jsr	WriteFMI(pc)
-		jsr	WriteFMII(pc)
+		moveq	#$FFFFFFB4,d0			; Command to set AMS/FMS/panning
+		moveq	#0,d1				; No panning, AMS or FMS
+		jsr	WriteFMI(pc)			; FM1
+		jsr	WriteFMII(pc)			; FM4
 		addq.b	#1,d0
-		dbf	d3,.killpanloop
+		jsr	WriteFMI(pc)			; FM2
+		jsr	WriteFMII(pc)			; FM5
+		addq.b	#1,d0
+		jsr	WriteFMI(pc)			; FM3
+		tst.b	SMPS_RAM.v_music_fm6_track(a6)	; is FM6 playing?
+		bpl.s	.notFM6				; if not, don't touch it, because FM6 is owned by Mega PCM then
+		jsr	WriteFMII(pc)			; FM6
+	.notFM6:
 
 		moveq	#2,d3
 		moveq	#$28,d0		; Key on/off register
@@ -529,6 +533,8 @@ PauseMusic:
 		jsr	WriteFMI(pc)
 		dbf	d3,.noteoffloop
 
+		MPCM_pause
+
 		jsr	PSGSilenceAll(pc)
 		bra.w	DoStartZ80
 ; ===========================================================================
@@ -537,7 +543,7 @@ PauseMusic:
 		clr.b	SMPS_RAM.f_pausemusic(a6)
 		moveq	#SMPS_Track.len,d3
 		lea	SMPS_RAM.v_music_fmdac_tracks(a6),a5
-		moveq	#SMPS_MUSIC_FM_DAC_TRACK_COUNT-1,d4	; 6 FM + 1 DAC tracks
+		moveq	#6-1,d4					; 6 FM
 ; loc_71EA0:
 .bgmfmloop:
 		btst	#7,SMPS_Track.PlaybackControl(a5)	; Is track playing?
@@ -578,6 +584,9 @@ PauseMusic:
 		jsr	WriteFMIorII(pc)
 ; loc_71EFE:
 .unpausedallfm:
+		MPCM_unpause
+
+.done:
 		bra.w	DoStartZ80
 
 ; ===========================================================================
@@ -821,6 +830,11 @@ Sound_PlayBGM:
 		jsr	WriteFMII(pc)
 ; loc_72114:
 .bgm_fmdone:
+		MPCM_stopZ80
+		move.b	#0, (MPCM_Z80_RAM+Z_MPCM_VolumeInput).l	; set DAC volume to maximum
+		move.b	#$C0, (MPCM_Z80_RAM+Z_MPCM_PanInput).l	; set panning to LR
+		MPCM_startZ80
+
 		moveq	#0,d7
 		move.b	3(a3),d7	; Load number of PSG tracks
 		beq.s	.bgm_psgdone	; branch if zero
@@ -913,10 +927,6 @@ PSGInitBytes:	dc.b $80, $A0, $C0	; Specifically, these configure writes to the P
 Sound_PlaySFX:
 		tst.b	SMPS_RAM.f_1up_playing(a6)	; Is 1-up playing?
 		bne.w	.clear_sndprio			; Exit is it is
-		tst.b	SMPS_RAM.v_fadeout_counter(a6)	; Is music being faded out?
-		bne.w	.clear_sndprio			; Exit if it is
-		tst.b	SMPS_RAM.f_fadein_flag(a6)	; Is music being faded in?
-		bne.w	.clear_sndprio			; Exit if it is
 		cmpi.b	#sfx_Ring,d7			; is ring sound effect played?
 		bne.s	.sfx_notRing			; if not, branch
 		tst.b	SMPS_RAM.v_ring_speaker(a6)	; Is the ring sound playing on right speaker?
@@ -1054,10 +1064,6 @@ SFX_SFXChannelRAM:
 Sound_PlaySpecial:
 		tst.b	SMPS_RAM.f_1up_playing(a6)	; Is 1-up playing?
 		bne.w	.locret				; Return if so
-		tst.b	SMPS_RAM.v_fadeout_counter(a6)	; Is music being faded out?
-		bne.w	.locret				; Exit if it is
-		tst.b	SMPS_RAM.f_fadein_flag(a6)	; Is music being faded in?
-		bne.w	.locret				; Exit if it is
 		movea.l	(Go_SpecSoundIndex).l,a0
 		subi.b	#spec__First,d7			; Make it 0-based
 		lsl.w	#2,d7
@@ -1303,7 +1309,6 @@ FadeOutMusic:
 		jsr	StopSpecialSFX(pc)
 		move.b	#3,SMPS_RAM.v_fadeout_delay(a6)			; Set fadeout delay to 3
 		move.b	#$28,SMPS_RAM.v_fadeout_counter(a6)		; Set fadeout counter
-		clr.b	SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Stop DAC track
 		clr.b	SMPS_RAM.f_speedup(a6)				; Disable speed shoes tempo
 		rts
 ; ===========================================================================
@@ -1317,9 +1322,25 @@ DoFadeOut:
 ; ===========================================================================
 ; loc_72510:
 .continuefade:
-		subq.b	#1,SMPS_RAM.v_fadeout_counter(a6)	; Update fade counter
+		subq.b	#1,SMPS_RAM.v_fadeout_counter(a6	; Update fade counter
 		beq.w	StopAllSound				; Branch if fade is done
 		move.b	#3,SMPS_RAM.v_fadeout_delay(a6)		; Reset fade delay
+
+		; Fade out DAC
+		lea	SMPS_RAM.v_music_dac_track(a6),a5
+		tst.b	(a5)					; is DAC playing?
+		bpl.s	.dac_done				; if yes, branch
+		addq.b	#4, SMPS_Track.Volume(a5)		; Increase volume attenuation
+		bpl.s	.dac_update_volume
+		and.b	#$7F, (a5)				; Stop channel
+		bra.s	.dac_done
+
+.dac_update_volume:
+		move.b	SMPS_Track.Volume(a5), d0
+		lsr.b	#3, d0
+		MPCM_setVol d0
+.dac_done:
+
 		lea	SMPS_RAM.v_music_fm_tracks(a6),a5
 		moveq	#SMPS_MUSIC_FM_TRACK_COUNT-1,d7		; 6 FM tracks
 ; loc_72524:
@@ -1400,9 +1421,6 @@ FMSilenceAll:
 ; ---------------------------------------------------------------------------
 ; Sound_E4: StopSoundAndMusic:
 StopAllSound:
-		moveq	#$2B,d0		; Enable/disable DAC
-		move.b	#$80,d1		; Enable DAC
-		jsr	WriteFMI(pc)
 		moveq	#$27,d0		; Timers, FM3/FM6 mode
 		moveq	#0,d1		; FM3/FM6 normal mode, disable timers
 		jsr	WriteFMI(pc)
@@ -1418,6 +1436,7 @@ StopAllSound:
 		clr.l	(a0)+
 		dbf	d0,.clearramloop
 
+		MPCM_stop
 		move.b	#$80,SMPS_RAM.v_sound_id(a6)	; set music to $80 (silence)
 		jsr	FMSilenceAll(pc)
 		bra.w	PSGSilenceAll
@@ -1552,9 +1571,25 @@ DoFadeIn:
 ; loc_72688:
 .continuefade:
 		tst.b	SMPS_RAM.v_fadein_counter(a6)		; Is fade done?
-		beq.s	.fadedone				; Branch if yes
+		beq.w	.fadedone				; Branch if yes
 		subq.b	#1,SMPS_RAM.v_fadein_counter(a6)	; Update fade counter
 		move.b	#2,SMPS_RAM.v_fadein_delay(a6)		; Reset fade delay
+
+		; Fade in DAC
+		lea	SMPS_RAM.v_music_dac_track(a6),a5
+		tst.b	(a5)					; is DAC playing?
+		bpl.s	.dac_done				; if yes, branch
+		subq.b	#4, SMPS_Track.Volume(a5)		; Increase volume attenuation
+		bcc.s	.dac_update_volume
+		move.b	#0, SMPS_Track.Volume(a5)
+		bra.s	.dac_done
+
+.dac_update_volume:
+		move.b	SMPS_Track.Volume(a5), d0
+		lsr.b	#3, d0
+		MPCM_setVol d0
+.dac_done:
+
 		lea	SMPS_RAM.v_music_fm_tracks(a6),a5
 		moveq	#SMPS_MUSIC_FM_TRACK_COUNT-1,d7		; 6 FM tracks
 ; loc_7269E:
@@ -1588,7 +1623,6 @@ DoFadeIn:
 ; ===========================================================================
 ; loc_726D6:
 .fadedone:
-		bclr	#2,SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Clear 'SFX overriding' bit
 		clr.b	SMPS_RAM.f_fadein_flag(a6)				; Stop fadein
 
 	if FixBugs
@@ -2054,12 +2088,22 @@ cfPanningAMSFMS:
 		move.b	(a4)+,d1			; New AMS/FMS/panning value
 		tst.b	SMPS_Track.VoiceControl(a5)	; Is this a PSG track?
 		bmi.s	locret_72AEA			; Return if yes
-		move.b	SMPS_Track.AMSFMSPan(a5),d0	; Get current AMS/FMS/panning
-		andi.b	#$37,d0				; Retain bits 0-2, 3-4 if set
-		or.b	d0,d1				; Mask in new value
+		moveq	#$37, d0
+		and.b	SMPS_Track.AMSFMSPan(a5),d0	; Get current AMS/FMS
+		or.b	d0,d1				; Add new panning bits
 		move.b	d1,SMPS_Track.AMSFMSPan(a5)	; Store value
-		move.b	#$B4,d0				; Command to set AMS/FMS/panning
+		tst.b	SMPS_RAM.f_updating_dac(a6)	; Are we updating DAC?
+		bmi.s	.updateDACPanning		; If yes, branch
+		moveq	#$FFFFFFB4,d0			; Command to set AMS/FMS/panning
 		bra.w	WriteFMIorIIMain
+
+	.updateDACPanning:
+		; Send to DAC panning Mega PCM instead of updating it directly.
+		; Mega PCM needs to track panning on its own to restore it in
+		; normal sample is interrupted by an SFX sample
+		and.b	#$C0, d1
+		MPCM_setPan d1
+		rts
 ; ===========================================================================
 
 locret_72AEA:
@@ -2104,7 +2148,11 @@ cfFadeInToPrevious:
 		jsr	WriteFMI(pc)	; Write to YM2612 Port 0 [sub_7272E]
 	endif
 
-		bset	#2,SMPS_RAM.v_music_dac_track.PlaybackControl(a6)	; Set 'SFX overriding' bit
+		tst.b	SMPS_RAM.v_music_dac_track(a6)			; is DAC playing?
+		bpl.s	.dacdone					; if not, branch
+		move.b	#$7F, SMPS_RAM.v_music_dac_track.Volume(a6)	; set initial DAC volume
+.dacdone:
+
 		movea.l	a5,a3
 		move.b	#$28,d6
 		sub.b	SMPS_RAM.v_fadein_counter(a6),d6	; If fade already in progress, this adjusts track volume accordingly
