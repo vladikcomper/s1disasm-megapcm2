@@ -49,6 +49,7 @@ ZoneCount = 6
 
 ; ===========================================================================
 ; Simplifying macros and functions
+	include	"MegaPCM.Macros.asm"
 	include	"Macros.asm"
 
 ; ===========================================================================
@@ -391,9 +392,21 @@ GameInit:
 		dbf	d6,.clearRAM	; clear RAM ($0000-$FDFF)
 
 		bsr.w	VDPSetupGame
-		bsr.w	DACDriverLoad
 		bsr.w	JoypadInit
 		move.b	#id_Sega,(v_gamemode).w ; set Game Mode to Sega Screen
+
+		jsr	MegaPCM_LoadDriver
+		lea	SampleTable, a0
+		jsr	MegaPCM_LoadSampleTable
+		tst.w	d0			; was sample table loaded successfully?
+		beq.s	.SampleTableOk		; if yes, branch
+		ifdef __DEBUG__ ; if def(__DEBUG__) for ASM68K
+			; for MD Debugger v.2.5 or above
+			RaiseError "MegaPCM_LoadSampleTable returned %<.b d0>", MPCM_Debugger_LoadSampleTableException
+		else
+			illegal
+		endif
+.SampleTableOk:
 
 MainGameLoop:
 		move.b	(v_gamemode).w,d0 ; load Game Mode
@@ -550,8 +563,8 @@ VBlank_Lag:
 
 .notPAL:
 		move.w	#1,(f_hblank_pal).w		; set HBlank flag
-		stopZ80
-		waitZ80
+		
+		
 
 		tst.b	(f_wtr_state).w			; is the screen completely underewater?
 		bne.s	.waterabove 			; if not, branch
@@ -562,7 +575,7 @@ VBlank_Lag:
 
 .waterbelow:
 		move.w	(v_hblank_hreg).w,(a5)		; write HBlank trigger scan line for water palette swap to VDP
-		startZ80
+		
 		bra.w	VBlank_Music			; branch back to update sound driver and resume operation
 
 ; ===========================================================================
@@ -630,8 +643,8 @@ VBlank_Paused:
 
 ; loc_C6E: VBla_08:
 VBlank_Levels:
-		stopZ80
-		waitZ80
+		
+		
 		bsr.w	ReadJoypads
 
 		tst.b	(f_wtr_state).w
@@ -654,7 +667,7 @@ VBlank_Levels:
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
-		startZ80
+		
 		movem.l	(v_screenposx).w,d0-d7
 		movem.l	d0-d7,(v_screenposx_dup).w
 		movem.l	(v_fg_scroll_flags).w,d0-d1
@@ -698,13 +711,13 @@ VBlank_UpdateScreen:
 
 ; loc_DA6: VBla_0A:
 VBlank_SpecialStage:
-		stopZ80
-		waitZ80
+		
+		
 		bsr.w	ReadJoypads
 		writeCRAM	v_palette,0
 		writeVRAM	v_spritetablebuffer,vram_sprites
 		writeVRAM	v_hscrolltablebuffer,vram_hscroll
-		startZ80
+		
 		bsr.w	PalCycle_SS
 
 		tst.b	(f_sonframechg).w		; has Sonic's sprite changed?
@@ -728,8 +741,8 @@ VBlank_SpecialStage:
 ; loc_E72: VBla_0C: VBla_18:
 VBlank_TitleCards:
 VBlank_Ending:
-		stopZ80
-		waitZ80
+		
+		
 		bsr.w	ReadJoypads
 		tst.b	(f_wtr_state).w
 		bne.s	.waterabove
@@ -751,7 +764,7 @@ VBlank_Ending:
 		move.b	#0,(f_sonframechg).w
 
 .nochg:
-		startZ80
+		
 		movem.l	(v_screenposx).w,d0-d7
 		movem.l	d0-d7,(v_screenposx_dup).w
 		movem.l	(v_fg_scroll_flags).w,d0-d1
@@ -793,13 +806,13 @@ VBlank_PaletteFade:
 
 ; loc_FA6: VBla_16:
 VBlank_Continue:
-		stopZ80
-		waitZ80
+		
+		
 		bsr.w	ReadJoypads
 		writeCRAM	v_palette,0
 		writeVRAM	v_spritetablebuffer,vram_sprites
 		writeVRAM	v_hscrolltablebuffer,vram_hscroll
-		startZ80
+		
 
 		tst.b	(f_sonframechg).w
 		beq.s	.nochg
@@ -821,8 +834,8 @@ VBlank_Continue:
 
 ; sub_106E:
 VBlank_StandardTransfers:
-		stopZ80
-		waitZ80
+		
+		
 		bsr.w	ReadJoypads
 
 		tst.b	(f_wtr_state).w			; is the screen completely underwater?
@@ -836,7 +849,7 @@ VBlank_StandardTransfers:
 .rest:
 		writeVRAM	v_spritetablebuffer,vram_sprites
 		writeVRAM	v_hscrolltablebuffer,vram_hscroll
-		startZ80
+		
 		rts
 ; End of function VBlank_StandardTransfers
 
@@ -886,13 +899,13 @@ HBlank:
 ; ---------------------------------------------------------------------------
 
 JoypadInit:
-		stopZ80					; request Z80 stop on
-		waitZ80					; wait until it has stopped
+							; request Z80 stop on
+							; wait until it has stopped
 		moveq	#$40,d0				; prepare intialise value
 		move.b	d0,(port_1_control).l		; init port 1 (joypad 1)
 		move.b	d0,(port_2_control).l		; init port 2 (joypad 2)
 		move.b	d0,(expansion_control).l	; init port 3 (expansion/extra)
-		startZ80				; request Z80 stop off
+						; request Z80 stop off
 		rts					; return
 ; End of function JoypadInit
 
@@ -1030,29 +1043,6 @@ ClearScreen:
 
 		rts
 ; End of function ClearScreen
-
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Subroutine to load the DAC driver
-; ---------------------------------------------------------------------------
-
-; SoundDriverLoad: <--- old misnomer
-DACDriverLoad:
-		nop					; delay
-		stopZ80                                 ; request Z80 stop on
-		deassertZ80Reset                        ; request Z80 reset off
-		lea	(DACDriver).l,a0                ; load compressed DAC driver address as source
-		lea	(z80_ram).l,a1	                ; set Z80 RAM address as target
-		bsr.w	KosDec		                ; decompress the DAC driver into Z80 RAM
-		assertZ80Reset                          ; request Z80 reset on
-		nop	                                ; delay (while the Z80 resets)
-		nop	                                ; ''
-		nop	                                ; ''
-		nop	                                ; ''
-		deassertZ80Reset                        ; request Z80 reset off
-		startZ80                                ; request Z80 stop off
-		rts                                     ; return
-; End of function DACDriverLoad
 
 ; ===========================================================================
 ; >>> Subroutines to queue sound commands to be executed by the sound driver during VBlank
@@ -1683,7 +1673,7 @@ Sega_WaitPal:	; while light scanning effect is active
 ; ---------------------------------------------------------------------------
 
 		; after sound has finished playing
-		move.w	#30,(v_generictimer).w		; wait 30 frames before automatic fade-out
+		move.w	#30+2*60,(v_generictimer).w	; wait 30 frames before automatic fade-out
 
 Sega_WaitEnd:
 		move.b	#id_VBlank_Sega,(v_vblank_routine).w ; set VBlank routine to $02
@@ -1715,7 +1705,6 @@ GM_Title:	; fading out from previous game mode
 
 		; screen setup and loading "SONIC TEAM PRESENTS" (STP) patterns
 		disable_ints				; disable ints while accessing the VDP
-		bsr.w	DACDriverLoad			; load Z80 driver
 		lea	(vdp_control_port).l,a6		; load VDP control port
 		move.w	#$8004,(a6)			; 8-colour mode
 		move.w	#$8200+(vram_fg>>10),(a6)	; set foreground nametable address
@@ -5130,6 +5119,8 @@ ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 		
 ; ---------------------------------------------------------------------------
 
+		include	"MegaPCM.asm"
+		include "SampleTable.asm"
 SoundDriver:	include "s1.sounddriver.asm"
 		even
 
